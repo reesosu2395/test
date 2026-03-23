@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Coatings - Employee Assessment</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f9; padding: 20px; color: #333; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        h1 { color: #004a99; text-align: center; border-bottom: 3px solid #004a99; padding-bottom: 10px; margin-bottom: 30px; }
+        .passage-box { background: #fcfcfc; border: 1px solid #e1e4e8; padding: 15px; margin-bottom: 15px; font-style: italic; border-left: 5px solid #004a99; color: #444; line-height: 1.5; }
+        .question-block { margin-bottom: 35px; padding-bottom: 25px; border-bottom: 1px solid #f0f0f0; }
+        .options label { display: block; margin: 10px 0; cursor: pointer; padding: 10px; border-radius: 4px; transition: background 0.2s; border: 1px solid transparent; }
+        .options label:hover { background: #f0f7ff; border-color: #cce5ff; }
+        .correct-answer { background-color: #d4edda !important; border-color: #c3e6cb !important; color: #155724; font-weight: bold; }
+        .incorrect-answer { background-color: #f8d7da !important; border-color: #f5c6cb !important; color: #721c24; }
+        #submit-btn { background: #004a99; color: white; border: none; padding: 18px; font-size: 20px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 20px; font-weight: bold; transition: background 0.3s; }
+        #submit-btn:hover { background: #003366; }
+        input[type="text"] { width: 100%; padding: 14px; margin-bottom: 30px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        .q-text { font-size: 18px; color: #222; margin-top: 5px; margin-bottom: 15px;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Skills Assessment</h1>
+    
+    <label for="userName"><strong>Employee Full Name:</strong></label>
+    <input type="text" id="userName" placeholder="Type your first and last name here..." required>
+
+    <form id="quizForm">
+        <div id="quizContent"></div>
+        <button type="button" id="submit-btn" onclick="gradeAndSend()">Submit Assessment</button>
+    </form>
+
+    <div id="finalScore" style="display:none; text-align:center; margin-top:30px; padding: 20px; background: #e2e3e5; border-radius: 8px; font-size:24px; font-weight:bold; color:#004a99;"></div>
+</div>
+
+<script>
+    // --- Initialize EmailJS ---
+    (function(){
+        emailjs.init("YOUR_PUBLIC_KEY"); // IMPORTANT: Replace with your actual EmailJS Public Key
+    })();
+
+    // --- The 40 Questions ---
+    const quizData = [
+        // Questions 1-4: Library
+        { p: "The new city library opened on Saturday. It has three floors and a large section just for children. Many people visited on the first day to sign up for library cards.", q: "What is the main idea of this passage?", opts: ["The library has three floors", "The opening of a new city library", "How to get a card", "Children love reading"], c: 1 },
+        { p: "The new city library opened on Saturday. It has three floors and a large section just for children. Many people visited on the first day to sign up for library cards.", q: "According to the passage, when did the library open?", opts: ["Friday", "Sunday", "Saturday", "Monday"], c: 2 },
+        { p: "The new city library opened on Saturday. It has three floors and a large section just for children. Many people visited on the first day to sign up for library cards.", q: "Why did many people visit on the first day?", opts: ["To sign up for cards", "To buy books", "To work", "To meet the mayor"], c: 0 },
+        { p: "The new city library opened on Saturday. It has three floors and a large section just for children. Many people visited on the first day to sign up for library cards.", q: "What does the word 'section' most likely mean?", opts: ["A type of book", "A specific area or part", "A group of people", "The front door"], c: 1 },
+        
+        // Questions 5-8: Pasta
+        { p: "To make pasta, first boil a large pot of water. Once the water is bubbling, add a pinch of salt and the noodles. Cook for ten minutes, then drain the water using a colander.", q: "What is the very first step mentioned?", opts: ["Add salt", "Boil a large pot of water", "Drain the water", "Add noodles"], c: 1 },
+        { p: "To make pasta, first boil a large pot of water. Once the water is bubbling, add a pinch of salt and the noodles. Cook for ten minutes, then drain the water using a colander.", q: "What tool is used to remove the water?", opts: ["Spoon", "Fork", "Colander", "Plate"], c: 2 },
+        { p: "To make pasta, first boil a large pot of water. Once the water is bubbling, add a pinch of salt and the noodles. Cook for ten minutes, then drain the water using a colander.", q: "How long should the noodles cook?", opts: ["5 minutes", "10 minutes", "2 minutes", "20 minutes"], c: 1 },
+        { p: "To make pasta, first boil a large pot of water. Once the water is bubbling, add a pinch of salt and the noodles. Cook for ten minutes, then drain the water using a colander.", q: "When should you add the salt?", opts: ["Before boiling", "After draining", "Once the water is bubbling", "When on the plate"], c: 2 },
+        
+        // Questions 9-12: School Play
+        { p: "Sarah practiced her lines every night for a month for the school play. When she stepped onto the stage, she saw her parents in the front row and smiled.", q: "How did Sarah prepare for the play?", opts: ["Bought a dress", "Invited friends", "Practiced lines nightly", "Watched other plays"], c: 2 },
+        { p: "Sarah practiced her lines every night for a month for the school play. When she stepped onto the stage, she saw her parents in the front row and smiled.", q: "Where were Sarah's parents sitting?", opts: ["Back row", "Front row", "On stage", "At home"], c: 1 },
+        { p: "Sarah practiced her lines every night for a month for the school play. When she stepped onto the stage, she saw her parents in the front row and smiled.", q: "How long did Sarah practice?", opts: ["One week", "One day", "One month", "One year"], c: 2 },
+        { p: "Sarah practiced her lines every night for a month for the school play. When she stepped onto the stage, she saw her parents in the front row and smiled.", q: "What can you infer about Sarah?", opts: ["She was too nervous", "She felt ready and happy", "She forgot lines", "She wanted to go home"], c: 1 },
+        
+        // Questions 13-16: Bees
+        { p: "Bees move pollen from one flower to another, which helps plants grow fruits and seeds. This process is called pollination.", q: "What is the process of moving pollen called?", opts: ["Gardening", "Pollination", "Planting", "Growing"], c: 1 },
+        { p: "Bees move pollen from one flower to another, which helps plants grow fruits and seeds. This process is called pollination.", q: "According to the passage, why are bees important?", opts: ["They make honey", "They help plants grow fruit and seeds", "They are colorful", "They live in hives"], c: 1 },
+        { p: "Bees move pollen from one flower to another, which helps plants grow fruits and seeds. This process is called pollination.", q: "What do bees move between flowers?", opts: ["Water", "Leaves", "Pollen", "Dirt"], c: 2 },
+        { p: "Bees move pollen from one flower to another, which helps plants grow fruits and seeds. This process is called pollination.", q: "What is the main idea of this passage?", opts: ["How bees sting", "The importance of bees in pollination", "Types of flowers", "Fruit nutrition"], c: 1 },
+        
+        // Questions 17-20: The Sun
+        { p: "The sun is a star at the center of our solar system. It provides light and heat to Earth. Without the sun, life on Earth would not be possible.", q: "Where is the sun located?", opts: ["Near the moon", "At the center of the solar system", "Inside Earth", "Behind clouds"], c: 1 },
+        { p: "The sun is a star at the center of our solar system. It provides light and heat to Earth. Without the sun, life on Earth would not be possible.", q: "What does the sun provide to Earth?", opts: ["Water and air", "Light and heat", "Rocks and soil", "Food and clothes"], c: 1 },
+        { p: "The sun is a star at the center of our solar system. It provides light and heat to Earth. Without the sun, life on Earth would not be possible.", q: "What kind of object is the sun?", opts: ["A planet", "A moon", "A star", "A comet"], c: 2 },
+        { p: "The sun is a star at the center of our solar system. It provides light and heat to Earth. Without the sun, life on Earth would not be possible.", q: "What would happen without the sun?", opts: ["Always daytime", "Life would not be possible", "Earth gets hotter", "No change"], c: 1 },
+
+        // Questions 21-25: Addition
+        { q: "124 + 56 =", opts: ["170", "180", "190", "200"], c: 1 },
+        { q: "89 + 42 =", opts: ["121", "131", "141", "111"], c: 1 },
+        { q: "215 + 338 =", opts: ["543", "553", "563", "653"], c: 1 },
+        { q: "1,250 + 475 =", opts: ["1,625", "1,725", "1,825", "1,715"], c: 1 },
+        { q: "67 + 19 =", opts: ["76", "86", "96", "84"], c: 1 },
+        
+        // Questions 26-30: Subtraction
+        { q: "95 - 38 =", opts: ["57", "67", "53", "47"], c: 0 },
+        { q: "210 - 45 =", opts: ["175", "165", "155", "185"], c: 1 },
+        { q: "1,000 - 672 =", opts: ["328", "428", "338", "322"], c: 0 },
+        { q: "84 - 29 =", opts: ["65", "55", "56", "45"], c: 1 },
+        { q: "503 - 128 =", opts: ["375", "385", "475", "377"], c: 0 },
+        
+        // Questions 31-35: Multiplication
+        { q: "12 &times; 8 =", opts: ["86", "96", "106", "92"], c: 1 },
+        { q: "15 &times; 5 =", opts: ["75", "65", "85", "70"], c: 0 },
+        { q: "7 &times; 9 =", opts: ["56", "63", "72", "64"], c: 1 },
+        { q: "25 &times; 4 =", opts: ["75", "100", "125", "90"], c: 1 },
+        { q: "11 &times; 11 =", opts: ["110", "121", "131", "111"], c: 1 },
+        
+        // Questions 36-40: Division
+        { q: "72 &divide; 8 =", opts: ["7", "8", "9", "10"], c: 2 },
+        { q: "100 &divide; 4 =", opts: ["20", "25", "30", "50"], c: 1 },
+        { q: "56 &divide; 7 =", opts: ["8", "7", "9", "6"], c: 0 },
+        { q: "144 &divide; 12 =", opts: ["10", "11", "12", "13"], c: 2 },
+        { q: "81 &divide; 9 =", opts: ["7", "8", "9", "10"], c: 2 }
+    ];
+
+    const container = document.getElementById('quizContent');
+
+    // --- Render the Quiz on Screen ---
+    function renderQuiz() {
+        quizData.forEach((item, index) => {
+            let html = `<div class="question-block" id="block-${index}">`;
+            
+            // Print the passage above the question if it exists
+            if(item.p) { 
+                html += `<div class="passage-box"><strong>Passage:</strong> ${item.p}</div>`; 
+            }
+            
+            // Print the question text
+            html += `<div class="q-text"><strong>${index + 1}. ${item.q}</strong></div><div class="options">`;
+            
+            // Print the multiple choice options
+            item.opts.forEach((opt, i) => {
+                html += `<label id="label-q${index}-o${i}">
+                            <input type="radio" name="q${index}" value="${i}"> ${opt}
+                         </label>`;
+            });
+            
+            html += `</div></div>`;
+            container.innerHTML += html;
+        });
+    }
+
+    // --- Grade and Send Email ---
+    function gradeAndSend() {
+        const name = document.getElementById('userName').value.trim();
+        if (!name) { 
+            alert("Please enter your name before submitting."); 
+            window.scrollTo(0, 0);
+            return; 
+        }
+
+        // Disable submit button so they don't click it twice
+        const btn = document.getElementById('submit-btn');
+        btn.innerText = "Processing...";
+        btn.disabled = true;
+
+        let score = 0;
+        
+        // Grade each question
+        quizData.forEach((item, index) => {
+            const selectedRadio = document.querySelector(`input[name="q${index}"]:checked`);
+            
+            // Highlight the correct answer in green regardless of what they picked
+            document.getElementById(`label-q${index}-o${item.c}`).classList.add('correct-answer');
+
+            if (selectedRadio) {
+                const selectedValue = parseInt(selectedRadio.value);
+                if (selectedValue === item.c) {
+                    score++; // Correct
+                } else {
+                    // Highlight their wrong answer in red
+                    document.getElementById(`label-q${index}-o${selectedValue}`).classList.add('incorrect-answer');
+                }
+            } else {
+                // If they skipped it, highlight the whole block to show they missed it
+                document.getElementById(`block-${index}`).style.borderLeft = "5px solid #dc3545";
+            }
+        });
+
+        // Display Score on Screen
+        const total = quizData.length;
+        const percentage = Math.round((score / total) * 100);
+        const resultStr = `${name} scored ${score} out of ${total} (${percentage}%)`;
+        
+        const finalScoreDiv = document.getElementById('finalScore');
+        finalScoreDiv.innerText = resultStr;
+        finalScoreDiv.style.display = 'block';
+
+        // Send Email via EmailJS
+        emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
+            from_name: name,
+            score_data: resultStr
+        }).then(
+            () => {
+                btn.innerText = "Assessment Submitted";
+                alert("Assessment Submitted Successfully! Your results have been recorded.");
+            }, 
+            (err) => {
+                btn.innerText = "Submit Assessment";
+                btn.disabled = false;
+                alert("There was an error sending the email. Please notify your manager. Error: " + JSON.stringify(err));
+            }
+        );
+    }
+
+    // Run the render function when the page loads
+    renderQuiz();
+</script>
+
+</body>
+</html>
