@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Coatings - Employee Assessment</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #e9ecef; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 40px; border-radius: 12px; shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        h1 { color: #004a99; text-align: center; border-bottom: 3px solid #004a99; padding-bottom: 10px; }
+        .section-header { background: #004a99; color: white; padding: 10px; margin: 30px 0 15px 0; border-radius: 5px; }
+        .passage-box { background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; margin-bottom: 10px; font-style: italic; border-left: 5px solid #004a99; }
+        .question-block { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .options label { display: block; margin: 10px 0; cursor: pointer; padding: 5px; border-radius: 4px; }
+        .options label:hover { background: #f1f1f1; }
+        #submit-btn { background: #28a745; color: white; border: none; padding: 15px; font-size: 18px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 20px; font-weight: bold; }
+        #submit-btn:hover { background: #218838; }
+        input[type="text"] { width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Quality Control Skills Assessment</h1>
+    
+    <label for="userName"><strong>Employee Name:</strong></label>
+    <input type="text" id="userName" placeholder="Enter your full name..." required>
+
+    <form id="quizForm">
+        <div id="quizContent"></div>
+        <button type="button" id="submit-btn" onclick="gradeAndSend()">Submit Test Results</button>
+    </form>
+
+    <div id="finalScore" style="display:none; text-align:center; margin-top:30px; font-size:24px; color:#004a99;"></div>
+</div>
+
+<script>
+    // --- EMAILJS INITIALIZATION ---
+    (function(){
+        emailjs.init("YOUR_PUBLIC_KEY"); // Replace with your Public Key
+    })();
+
+    const quizData = [
+        // READING COMPREHENSION (1-20)
+        { 
+            passage: "The new city library opened on Saturday. It has three floors and a large section just for children. Many people visited on the first day to sign up for library cards.",
+            q: "What is the main idea of this passage?",
+            options: ["The library has three floors", "The opening of a new city library", "How to get a card", "Children love reading"],
+            correct: 1
+        },
+        { 
+            passage: "The new city library opened on Saturday. It has three floors and a large section just for children. Many people visited on the first day to sign up for library cards.",
+            q: "According to the passage, when did the library open?",
+            options: ["Friday", "Sunday", "Saturday", "Monday"],
+            correct: 2
+        },
+        { 
+            passage: "The new city library opened on Saturday. It has three floors and a large section just for children. Many people visited on the first day to sign up for library cards.",
+            q: "Why did many people visit on the first day?",
+            options: ["To sign up for cards", "To buy books", "To work", "To meet the mayor"],
+            correct: 0
+        },
+        { 
+            passage: "To make pasta, first boil a large pot of water. Once the water is bubbling, add a pinch of salt and the noodles. Cook for ten minutes, then drain the water using a colander.",
+            q: "What is the very first step mentioned?",
+            options: ["Add salt", "Boil a large pot of water", "Drain the water", "Add noodles"],
+            correct: 1
+        },
+        { 
+            passage: "To make pasta, first boil a large pot of water. Once the water is bubbling, add a pinch of salt and the noodles. Cook for ten minutes, then drain the water using a colander.",
+            q: "What tool is used to remove the water?",
+            options: ["Spoon", "Fork", "Colander", "Plate"],
+            correct: 2
+        },
+        { 
+            passage: "Sarah practiced her lines every night for a month for the school play. When she stepped onto the stage, she saw her parents in the front row and smiled.",
+            q: "How long did Sarah prepare for the play?",
+            options: ["One week", "One day", "One month", "One year"],
+            correct: 2
+        },
+        { 
+            passage: "Bees move pollen from one flower to another, which helps plants grow fruits and seeds. This process is called pollination.",
+            q: "What is the process of moving pollen called?",
+            options: ["Gardening", "Pollination", "Planting", "Growing"],
+            correct: 1
+        },
+        // ... (Remaining reading questions follow same format)
+        
+        // MATH SECTION (21-40)
+        { q: "124 + 56 =", options: ["170", "180", "190", "200"], correct: 1 },
+        { q: "89 + 42 =", options: ["121", "131", "141", "111"], correct: 1 },
+        { q: "215 + 338 =", options: ["543", "553", "563", "653"], correct: 1 },
+        { q: "1,250 + 475 =", options: ["1,625", "1,725", "1,825", "1,715"], correct: 1 },
+        { q: "67 + 19 =", options: ["76", "86", "96", "84"], correct: 1 },
+        { q: "95 - 38 =", options: ["57", "67", "53", "47"], correct: 0 },
+        { q: "210 - 45 =", options: ["175", "165", "155", "185"], correct: 1 },
+        { q: "1,000 - 672 =", options: ["328", "428", "338", "322"], correct: 0 },
+        { q: "84 - 29 =", options: ["65", "55", "56", "45"], correct: 1 },
+        { q: "503 - 128 =", options: ["375", "385", "475", "377"], correct: 0 },
+        { q: "12 x 8 =", options: ["86", "96", "106", "92"], correct: 1 },
+        { q: "15 x 5 =", options: ["75", "65", "85", "70"], correct: 0 },
+        { q: "7 x 9 =", options: ["56", "63", "72", "64"], correct: 1 },
+        { q: "25 x 4 =", options: ["75", "100", "125", "90"], correct: 1 },
+        { q: "11 x 11 =", options: ["110", "121", "131", "111"], correct: 1 },
+        { q: "72 / 8 =", options: ["7", "8", "9", "10"], correct: 2 },
+        { q: "100 / 4 =", options: ["20", "25", "30", "50"], correct: 1 },
+        { q: "56 / 7 =", options: ["8", "7", "9", "6"], correct: 0 },
+        { q: "144 / 12 =", options: ["10", "11", "12", "13"], correct: 2 },
+        { q: "81 / 9 =", options: ["7", "8", "9", "10"], correct: 2 }
+    ];
+
+    const quizContainer = document.getElementById('quizContent');
+
+    function renderQuiz() {
+        quizData.forEach((item, index) => {
+            let html = `<div class="question-block">`;
+            
+            // Insert Section Headers
+            if(index === 0) html = `<div class="section-header">Part 1: Reading Comprehension</div>` + html;
+            if(index === 20) html = `<div class="section-header">Part 2: Basic Mathematics</div>` + html;
+
+            // Insert Passage if it exists
+            if(item.passage) {
+                html += `<div class="passage-box"><strong>Passage:</strong> ${item.passage}</div>`;
+            }
+
+            html += `<p><strong>${index + 1}. ${item.q}</strong></p><div class="options">`;
+            
+            item.options.forEach((opt, i) => {
+                html += `<label><input type="radio" name="q${index}" value="${i}"> ${opt}</label>`;
+            });
+
+            html += `</div></div>`;
+            quizContainer.innerHTML += html;
+        });
+    }
+
+    function gradeAndSend() {
+        const name = document.getElementById('userName').value;
+        if (!name) { alert("Please enter your name."); return; }
+
+        let score = 0;
+        quizData.forEach((item, index) => {
+            const selected = document.querySelector(`input[name="q${index}"]:checked`);
+            if (selected && parseInt(selected.value) === item.correct) score++;
+        });
+
+        const resultStr = `${name} scored ${score}/${quizData.length}`;
+        document.getElementById('finalScore').innerText = resultStr;
+        document.getElementById('finalScore').style.display = 'block';
+
+        // Send Email
+        emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
+            from_name: name,
+            score_data: resultStr
+        }).then(() => alert("Results Sent!"), (err) => alert("Error: " + err));
+    }
+
+    renderQuiz();
+</script>
+
+</body>
+</html>
