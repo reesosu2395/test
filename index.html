@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PC Rees-Start - Book a Consultation</title>
+    <style>
+        /* Basic wireframe styling - easy to override with your own CSS */
+        body { font-family: sans-serif; max-width: 400px; margin: 2rem auto; }
+        form { display: flex; flex-direction: column; gap: 1rem; }
+        input, select, button { padding: 0.5rem; font-size: 1rem; }
+        button { cursor: pointer; background-color: #0056b3; color: white; border: none; border-radius: 4px; }
+        button:hover { background-color: #004494; }
+        #message { margin-top: 1rem; font-weight: bold; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <h2>Book an IT Service</h2>
+    <form id="bookingForm">
+        <input type="text" id="name" placeholder="Full Name" required>
+        <input type="email" id="email" placeholder="Email Address" required>
+        
+        <select id="serviceType">
+            <option value="IT Consultation">IT Consultation (1 Hour)</option>
+            <option value="Workflow Automation Audit">Workflow Automation Audit (1 Hour)</option>
+            <option value="System Diagnostics">System Diagnostics (1 Hour)</option>
+        </select>
+
+        <label for="date">Select Date:</label>
+        <input type="date" id="date" required>
+        
+        <label for="time">Select Time:</label>
+        <input type="time" id="time" required>
+
+        <button type="submit">Schedule Now</button>
+    </form>
+
+    <div id="message"></div>
+
+    <script>
+        document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+            // Prevent the page from refreshing when the form is submitted
+            e.preventDefault();
+            
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerText = "Scheduling...";
+            messageDiv.style.color = "black";
+
+            // 1. Gather the data from the form inputs
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const date = document.getElementById('date').value;
+            const time = document.getElementById('time').value;
+            const serviceType = document.getElementById('serviceType').value;
+
+            // 2. Format dates for Google Calendar (ISO 8601)
+            // Combine the date and time strings, then create a JavaScript Date object
+            const startDateTime = new Date(`${date}T${time}`);
+            
+            // Calculate end time. For this example, we automatically add 1 hour (60 mins * 60 secs * 1000 ms)
+            const endDateTime = new Date(startDateTime.getTime() + (60 * 60 * 1000));
+
+            // 3. Construct the exact JSON payload the Python backend expects
+            const payload = {
+                name: name,
+                email: email,
+                service_type: serviceType,
+                start_time: startDateTime.toISOString(),
+                end_time: endDateTime.toISOString()
+            };
+
+            // 4. Send the payload to your Flask server
+            try {
+                // Make sure this URL matches exactly where your Flask app is running
+                const response = await fetch('http://127.0.0.1:5000/api/schedule', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                // 5. Handle the response
+                if (response.ok) {
+                    messageDiv.innerText = `Success! Check your email for the calendar invite.`;
+                    messageDiv.style.color = "green";
+                    document.getElementById('bookingForm').reset(); // Clear the form
+                } else {
+                    messageDiv.innerText = `Error: ${result.error}`;
+                    messageDiv.style.color = "red";
+                }
+            } catch (error) {
+                messageDiv.innerText = "Failed to connect to the scheduling server. Please try again later.";
+                messageDiv.style.color = "red";
+                console.error("Fetch error:", error);
+            }
+        });
+    </script>
+</body>
+</html>
